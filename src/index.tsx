@@ -18,7 +18,7 @@ app.post('/api/calculate-pass', async (c) => {
 
     // Validate inputs
     if (!insideAngle || !outsideAngle || !rootGap || !thickness) {
-      return c.json({ error: '모든 필수 입력값을 제공해주세요.' }, 400)
+      return c.json({ error: 'Please provide all required input values.' }, 400)
     }
 
     // Set default values
@@ -95,7 +95,7 @@ app.post('/api/calculate-pass', async (c) => {
 
     return c.json(result)
   } catch (error) {
-    return c.json({ error: '계산 중 오류가 발생했습니다.' }, 500)
+    return c.json({ error: 'An error occurred during calculation.' }, 500)
   }
 })
 
@@ -107,7 +107,7 @@ app.get('/', (c) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>용접 Pass 계산기</title>
+        <title>Welding Pass Calculator</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/style.css" rel="stylesheet">
@@ -118,9 +118,9 @@ app.get('/', (c) => {
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                 <h1 class="text-4xl font-bold text-indigo-800 mb-2 flex items-center gap-3">
                     <i class="fas fa-industry"></i>
-                    용접 Pass 계산기
+                    Welding Pass Calculator
                 </h1>
-                <p class="text-gray-600">Lincoln Electric Powerwave 기반 용접 pass 수 자동 계산</p>
+                <p class="text-gray-600">Automatic welding pass calculation based on Lincoln Electric Powerwave</p>
             </div>
 
             <div class="grid md:grid-cols-2 gap-6">
@@ -128,7 +128,7 @@ app.get('/', (c) => {
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <i class="fas fa-edit text-indigo-600"></i>
-                        입력 파라미터
+                        Input Parameters
                     </h2>
                     
                     <form id="weldingForm" class="space-y-4">
@@ -169,7 +169,7 @@ app.get('/', (c) => {
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 <i class="fas fa-ruler-vertical text-indigo-500"></i>
-                                두께 (mm)
+                                Thickness (mm)
                             </label>
                             <input type="number" id="thickness" value="40" 
                                 class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
@@ -180,7 +180,7 @@ app.get('/', (c) => {
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 <i class="fas fa-tachometer-alt text-indigo-500"></i>
-                                용접 속도 (cpm)
+                                Welding Speed (cpm)
                             </label>
                             <input type="number" id="weldingSpeed" value="90" 
                                 class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
@@ -192,7 +192,7 @@ app.get('/', (c) => {
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     <i class="fas fa-bolt text-yellow-500"></i>
-                                    DC 전류 (A)
+                                    DC Current (A)
                                 </label>
                                 <input type="number" id="dcCurrent" value="1000" 
                                     class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
@@ -201,7 +201,7 @@ app.get('/', (c) => {
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                     <i class="fas fa-plug text-yellow-500"></i>
-                                    AC 전류 (A)
+                                    AC Current (A)
                                 </label>
                                 <input type="number" id="acCurrent" value="900" 
                                     class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
@@ -213,7 +213,7 @@ app.get('/', (c) => {
                         <button type="submit" 
                             class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
                             <i class="fas fa-calculator"></i>
-                            Pass 계산하기
+                            Calculate Pass
                         </button>
                     </form>
                 </div>
@@ -222,13 +222,13 @@ app.get('/', (c) => {
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <i class="fas fa-chart-line text-green-600"></i>
-                        계산 결과
+                        Calculation Results
                     </h2>
                     
                     <div id="results" class="space-y-4">
                         <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
                             <i class="fas fa-info-circle text-3xl mb-2"></i>
-                            <p>파라미터를 입력하고 계산하기 버튼을 클릭하세요.</p>
+                            <p>Enter parameters and click Calculate Pass button.</p>
                         </div>
                     </div>
                 </div>
@@ -238,7 +238,7 @@ app.get('/', (c) => {
             <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
                 <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-bookmark text-purple-600"></i>
-                    프리셋 설정
+                    Preset Configurations
                 </h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <button onclick="applyPreset(80, 80, 8, 40)" 
@@ -295,7 +295,7 @@ app.get('/', (c) => {
                     document.getElementById('results').innerHTML = \`
                         <div class="bg-red-50 border-2 border-red-300 rounded-lg p-4 text-red-800">
                             <i class="fas fa-exclamation-triangle"></i>
-                            계산 중 오류가 발생했습니다.
+                            An error occurred during calculation.
                         </div>
                     \`;
                 }
@@ -309,7 +309,7 @@ app.get('/', (c) => {
                     <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
                         <div class="text-center mb-4">
                             <div class="text-5xl font-bold mb-2">\${calc.totalPassCount}</div>
-                            <div class="text-lg">총 Pass 수</div>
+                            <div class="text-lg">Total Passes</div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 text-center">
                             <div class="bg-white/20 rounded-lg p-3">
@@ -327,7 +327,7 @@ app.get('/', (c) => {
                     <div class="space-y-3">
                         <div class="bg-blue-50 rounded-lg p-4">
                             <h3 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-expand-alt"></i> 용접 면적
+                                <i class="fas fa-expand-alt"></i> Welding Area
                             </h3>
                             <div class="grid grid-cols-2 gap-2 text-sm">
                                 <div>Inside: <span class="font-bold">\${calc.insideArea} mm²</span></div>
@@ -337,18 +337,18 @@ app.get('/', (c) => {
 
                         <div class="bg-gray-50 rounded-lg p-4">
                             <h3 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-info-circle"></i> 기술 정보
+                                <i class="fas fa-info-circle"></i> Technical Info
                             </h3>
                             <div class="space-y-1 text-sm">
-                                <div>DC 전류: <span class="font-bold">\${result.input.dcCurrent} A</span> → 용융속도: <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
-                                <div>AC 전류: <span class="font-bold">\${result.input.acCurrent} A</span> → 용융속도: <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
-                                <div>Pass당 면적: <span class="font-bold">\${calc.areaPerPass} mm²</span></div>
+                                <div>DC Current: <span class="font-bold">\${result.input.dcCurrent} A</span> → Melting Rate: <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
+                                <div>AC Current: <span class="font-bold">\${result.input.acCurrent} A</span> → Melting Rate: <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
+                                <div>Area per Pass: <span class="font-bold">\${calc.areaPerPass} mm²</span></div>
                             </div>
                         </div>
 
                         <div class="bg-yellow-50 rounded-lg p-4">
                             <h3 class="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-calculator"></i> 계산된 Pass 값
+                                <i class="fas fa-calculator"></i> Calculated Pass Values
                             </h3>
                             <div class="space-y-1 text-sm">
                                 <div>Inside: <span class="font-bold">\${calc.insideRequiredPass}</span> → \${calc.insidePassCount} pass</div>
