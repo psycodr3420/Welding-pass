@@ -30,11 +30,24 @@ app.post('/api/calculate-pass', async (c) => {
     const dc = parseFloat(dcCurrent) || 1000
     const ac = parseFloat(acCurrent) || 900
 
-    // Calculate Inside and Outside areas using the formula from Excel
-    // Outside Area formula: y = 0.2098x² - 1.6782x + 20 (where x is thickness)
-    // Inside Area formula: Outside Area - 15
-    const outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
-    const insideArea = outsideArea - 15
+    // Calculate Inside and Outside areas based on angle/root face configuration
+    // Different configurations use different formulas from Excel data
+    let insideArea, outsideArea
+    
+    // Determine configuration and apply corresponding formulas
+    if (Math.abs(ia - 60) < 5 && Math.abs(oa - 70) < 5 && Math.abs(rg - 5) < 2) {
+      // 60-70-5 Configuration
+      insideArea = (0.1751 * Math.pow(t, 2)) - (0.35 * t) + 17.374
+      outsideArea = (0.1443 * Math.pow(t, 2)) - (0.2905 * t) + 17.866
+    } else if (Math.abs(ia - 80) < 5 && Math.abs(oa - 80) < 5 && Math.abs(rg - 8) < 2) {
+      // 80-80-8 Configuration
+      insideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20 - 15
+      outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+    } else {
+      // Default to 80-80-8 configuration for other combinations
+      insideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20 - 15
+      outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+    }
 
     // Wire melting rate calculations
     // DC melting rate formula from Lincoln Electric
@@ -45,15 +58,16 @@ app.post('/api/calculate-pass', async (c) => {
     // Formula: MR = 0.000008 * I² + 0.0103 * I - 0.4557
     const acMeltingRate = (0.000008 * Math.pow(ac, 2)) + (0.0103 * ac) - 0.4557
 
-    // Welding speed in mm/h
+    // Welding speed conversion: 1 cpm = 600 mm/h
     const weldingSpeedMmH = ws * 600
 
-    // Wire melting rate per mm
-    const dcWmrPerMm = dcMeltingRate / weldingSpeedMmH * 1000
-    const acWmrPerMm = acMeltingRate / weldingSpeedMmH * 1000
+    // Wire melting rate per mm (g/mm)
+    // MR (kg/h) * 1000 (g/kg) / speed (mm/h)
+    const dcWmrPerMm = (dcMeltingRate * 1000) / weldingSpeedMmH
+    const acWmrPerMm = (acMeltingRate * 1000) / weldingSpeedMmH
 
-    // Specific gravity
-    const specificGravity = 7.85 / 1000 // g/mm³
+    // Specific gravity (g/mm³)
+    const specificGravity = 0.00785 // g/mm³ (steel: 7.85 g/cm³)
 
     // Area per pass
     const dcAreaPerPass = dcWmrPerMm / specificGravity
