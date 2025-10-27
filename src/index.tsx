@@ -30,23 +30,97 @@ app.post('/api/calculate-pass', async (c) => {
     const dc = parseFloat(dcCurrent) || 1000
     const ac = parseFloat(acCurrent) || 900
 
-    // Calculate Inside and Outside areas based on angle/root face configuration
-    // Different configurations use different formulas from Excel data
-    let insideArea, outsideArea
-    
-    // Determine configuration and apply corresponding formulas
-    if (Math.abs(ia - 60) < 5 && Math.abs(oa - 70) < 5 && Math.abs(rg - 5) < 2) {
-      // 60-70-5 Configuration
-      insideArea = (0.1751 * Math.pow(t, 2)) - (0.35 * t) + 17.374
-      outsideArea = (0.1443 * Math.pow(t, 2)) - (0.2905 * t) + 17.866
-    } else if (Math.abs(ia - 80) < 5 && Math.abs(oa - 80) < 5 && Math.abs(rg - 8) < 2) {
-      // 80-80-8 Configuration
-      insideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20 - 15
-      outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+    // Area calculation formulas extracted from Excel sheets
+    // Each configuration (Inside Angle - Outside Angle - Root Face) has specific formulas
+    const areaFormulas: Record<string, { inside: (t: number) => number; outside: (t: number) => number }> = {
+      '60-60-6': {
+        inside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
+      },
+      '60-60-8': {
+        inside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021
+      },
+      '60-65-5': {
+        inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.3175 * t) + 17.611,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2901 * t) + 17.862
+      },
+      '60-65-6': {
+        inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.6392 * t) + 18.121,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
+      },
+      '60-70-3': {
+        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
+      },
+      '60-70-4': {
+        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
+      },
+      '60-70-5': {
+        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.35 * t) + 17.374,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2905 * t) + 17.866
+      },
+      '70-70-3': {
+        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
+        outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
+      },
+      '80-80-6': {
+        inside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483,
+        outside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483
+      },
+      '80-80-7': {
+        inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532,
+        outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532
+      },
+      '80-80-8': {
+        inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20,
+        outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+      },
+      '80-80-10': {
+        inside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195,
+        outside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195
+      },
+      '90-90-8': {
+        inside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014,
+        outside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014
+      },
+      '90-90-10': {
+        inside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418,
+        outside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418
+      }
+    }
+
+    // Find the best matching configuration
+    const configKey = `${Math.round(ia)}-${Math.round(oa)}-${Math.round(rg)}`
+    let insideArea, outsideArea, matchedConfig = configKey
+
+    if (areaFormulas[configKey]) {
+      // Exact match found
+      insideArea = areaFormulas[configKey].inside(t)
+      outsideArea = areaFormulas[configKey].outside(t)
     } else {
-      // Default to 80-80-8 configuration for other combinations
-      insideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20 - 15
-      outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+      // Find nearest configuration
+      let minDistance = Infinity
+      let nearestKey = '80-80-8' // default
+
+      for (const key of Object.keys(areaFormulas)) {
+        const [keyIa, keyOa, keyRg] = key.split('-').map(Number)
+        const distance = Math.sqrt(
+          Math.pow(ia - keyIa, 2) +
+          Math.pow(oa - keyOa, 2) +
+          Math.pow(rg - keyRg, 2)
+        )
+        
+        if (distance < minDistance) {
+          minDistance = distance
+          nearestKey = key
+        }
+      }
+
+      matchedConfig = `${nearestKey} (nearest to ${configKey})`
+      insideArea = areaFormulas[nearestKey].inside(t)
+      outsideArea = areaFormulas[nearestKey].outside(t)
     }
 
     // Wire melting rate calculations
@@ -94,6 +168,7 @@ app.post('/api/calculate-pass', async (c) => {
         acCurrent: ac
       },
       calculated: {
+        configuration: matchedConfig,
         insideArea: Math.round(insideArea * 100) / 100,
         outsideArea: Math.round(outsideArea * 100) / 100,
         dcMeltingRate: Math.round(dcMeltingRate * 100) / 100,
@@ -254,7 +329,47 @@ app.get('/', (c) => {
                     <i class="fas fa-bookmark text-purple-600"></i>
                     Preset Configurations
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <button onclick="applyPreset(60, 60, 6, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-60-6
+                    </button>
+                    <button onclick="applyPreset(60, 60, 8, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-60-8
+                    </button>
+                    <button onclick="applyPreset(60, 65, 5, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-65-5
+                    </button>
+                    <button onclick="applyPreset(60, 65, 6, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-65-6
+                    </button>
+                    <button onclick="applyPreset(60, 70, 3, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-70-3
+                    </button>
+                    <button onclick="applyPreset(60, 70, 4, 31.4)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-70-4
+                    </button>
+                    <button onclick="applyPreset(60, 70, 5, 50)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-70-5
+                    </button>
+                    <button onclick="applyPreset(70, 70, 3, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        70-70-3
+                    </button>
+                    <button onclick="applyPreset(80, 80, 6, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        80-80-6
+                    </button>
+                    <button onclick="applyPreset(80, 80, 7, 40)" 
+                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        80-80-7
+                    </button>
                     <button onclick="applyPreset(80, 80, 8, 40)" 
                         class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
                         80-80-8
@@ -263,13 +378,13 @@ app.get('/', (c) => {
                         class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
                         80-80-10
                     </button>
-                    <button onclick="applyPreset(60, 70, 5, 50)" 
+                    <button onclick="applyPreset(90, 90, 8, 40)" 
                         class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
-                        60-70-5
+                        90-90-8
                     </button>
-                    <button onclick="applyPreset(60, 70, 4, 31.4)" 
+                    <button onclick="applyPreset(90, 90, 10, 40)" 
                         class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
-                        60-70-4
+                        90-90-10
                     </button>
                 </div>
             </div>
@@ -339,6 +454,15 @@ app.get('/', (c) => {
 
                     <!-- Detailed Results -->
                     <div class="space-y-3">
+                        <div class="bg-indigo-50 rounded-lg p-4">
+                            <h3 class="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+                                <i class="fas fa-cog"></i> Configuration
+                            </h3>
+                            <div class="text-sm">
+                                <div>Used Formula: <span class="font-bold text-indigo-700">\${calc.configuration}</span></div>
+                            </div>
+                        </div>
+
                         <div class="bg-blue-50 rounded-lg p-4">
                             <h3 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                                 <i class="fas fa-expand-alt"></i> Welding Area

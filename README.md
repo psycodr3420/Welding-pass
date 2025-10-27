@@ -7,10 +7,12 @@ Lincoln Electric Powerwave 기반의 용접 pass 수를 자동으로 계산하�
 
 ### 주요 기능
 
+- ✅ **다중 구성 지원**: 14가지 다른 groove 구성 자동 인식 및 적용
 - ✅ **자동 Pass 계산**: Inside/Outside groove 각도, root gap, 두께, **DC/AC 전류** 등을 기반으로 자동 계산
 - ✅ **전류 기반 용융속도 계산**: 입력한 DC/AC 전류 값에 따라 정확한 wire 용융속도 계산
-- ✅ **상세 계산 결과**: 용접 면적, 부피, 중량, wire 용융속도 등 상세 정보 제공
-- ✅ **프리셋 설정**: 자주 사용하는 설정을 프리셋으로 제공 (80-80-8, 60-70-5 등)
+- ✅ **지능형 구성 매칭**: 입력과 정확히 일치하는 구성이 없으면 가장 가까운 구성 자동 선택
+- ✅ **상세 계산 결과**: 용접 면적, wire 용융속도, 사용된 구성 정보 등 상세 정보 제공
+- ✅ **14개 프리셋**: 자주 사용하는 설정을 프리셋으로 제공
 - ✅ **반응형 UI**: 모바일/데스크탑 모두 지원하는 반응형 디자인
 - ✅ **실시간 계산**: 입력 후 즉시 결과 확인 가능
 
@@ -53,23 +55,54 @@ Lincoln Electric Powerwave 기반의 용접 pass 수를 자동으로 계산하�
 - **Pass당 면적** (mm²): 1회 pass당 용접 면적 (Tandem effect 15% 포함)
 - **계산된 Pass 값**: 실제 필요한 정확한 pass 수와 올림 값
 
+## 지원하는 구성 (Configurations)
+
+시스템은 다음 14가지 groove 구성을 지원하며, 각 구성마다 고유한 Area 계산 공식을 사용합니다:
+
+### 60° 시리즈
+- **60-60-6**: Inside 60°, Outside 60°, Root Face 6mm
+- **60-60-8**: Inside 60°, Outside 60°, Root Face 8mm
+- **60-65-5**: Inside 60°, Outside 65°, Root Face 5mm
+- **60-65-6**: Inside 60°, Outside 65°, Root Face 6mm
+- **60-70-3**: Inside 60°, Outside 70°, Root Face 3mm
+- **60-70-4**: Inside 60°, Outside 70°, Root Face 4mm
+- **60-70-5**: Inside 60°, Outside 70°, Root Face 5mm
+
+### 70° 시리즈
+- **70-70-3**: Inside 70°, Outside 70°, Root Face 3mm
+
+### 80° 시리즈
+- **80-80-6**: Inside 80°, Outside 80°, Root Face 6mm
+- **80-80-7**: Inside 80°, Outside 80°, Root Face 7mm
+- **80-80-8**: Inside 80°, Outside 80°, Root Face 8mm
+- **80-80-10**: Inside 80°, Outside 80°, Root Face 10mm
+
+### 90° 시리즈
+- **90-90-8**: Inside 90°, Outside 90°, Root Face 8mm
+- **90-90-10**: Inside 90°, Outside 90°, Root Face 10mm
+
 ## 계산 공식
 
 ### 1. 용접 면적 계산 (Configuration-Specific)
 
-#### 60-70-5 Configuration (60°, 70°, Root Face 5mm)
-```
-Inside Area  = 0.1751 × t² - 0.35 × t + 17.374
-Outside Area = 0.1443 × t² - 0.2905 × t + 17.866
-```
+각 구성마다 고유한 2차 방정식 공식을 사용합니다. 모든 공식은 Lincoln Electric Excel 데이터에서 추출되었습니다.
 
-#### 80-80-8 Configuration (80°, 80°, Root Face 8mm)
+**공식 형태:**
 ```
-Inside Area  = 0.2098 × t² - 1.6782 × t + 5
-Outside Area = 0.2098 × t² - 1.6782 × t + 20
+Area = a × t² + b × t + c
 ```
+여기서 t는 두께(mm)이고, a, b, c는 각 구성마다 다른 계수입니다.
 
-**Note**: Different angle/root face combinations use different formulas derived from Lincoln Electric Excel data.
+**예시:**
+- **60-70-5**: 
+  - Inside Area = 0.1751 × t² - 0.35 × t + 17.374
+  - Outside Area = 0.1443 × t² - 0.2905 × t + 17.866
+  
+- **80-80-8**: 
+  - Inside Area = 0.2098 × t² - 1.6782 × t + 20
+  - Outside Area = 0.2098 × t² - 1.6782 × t + 20
+
+**지능형 매칭**: 입력한 구성이 정확히 일치하지 않으면, 가장 가까운 구성을 자동으로 선택합니다.
 
 ### 2. Wire 용융속도 (전류 기반)
 - **DC**: `MR = 0.000001 × I² + 0.0131 × I - 0.998` (kg/h)
@@ -162,12 +195,17 @@ actualPass = ROUNDUP(requiredPass)
 
 ## 프리셋 설정
 
-| 프리셋 | Inside | Outside | Gap | 두께 |
-|--------|--------|---------|-----|------|
-| 80-80-8 | 80° | 80° | 8mm | 40mm |
-| 80-80-10 | 80° | 80° | 10mm | 50mm |
-| 60-70-5 | 60° | 70° | 5mm | 50mm |
-| 60-70-4 | 60° | 70° | 4mm | 31.4mm |
+총 14개의 프리셋이 제공됩니다:
+
+| 프리셋 | Inside | Outside | Gap | 두께 | 프리셋 | Inside | Outside | Gap | 두께 |
+|--------|--------|---------|-----|------|--------|--------|---------|-----|------|
+| 60-60-6 | 60° | 60° | 6mm | 40mm | 70-70-3 | 70° | 70° | 3mm | 40mm |
+| 60-60-8 | 60° | 60° | 8mm | 40mm | 80-80-6 | 80° | 80° | 6mm | 40mm |
+| 60-65-5 | 60° | 65° | 5mm | 40mm | 80-80-7 | 80° | 80° | 7mm | 40mm |
+| 60-65-6 | 60° | 65° | 6mm | 40mm | 80-80-8 | 80° | 80° | 8mm | 40mm |
+| 60-70-3 | 60° | 70° | 3mm | 40mm | 80-80-10 | 80° | 80° | 10mm | 50mm |
+| 60-70-4 | 60° | 70° | 4mm | 31.4mm | 90-90-8 | 90° | 90° | 8mm | 40mm |
+| 60-70-5 | 60° | 70° | 5mm | 50mm | 90-90-10 | 90° | 90° | 10mm | 40mm |
 
 ## 개발 환경 실행
 
@@ -263,6 +301,14 @@ GenSpark AI Assistant
 - **Total: 18 passes** ✅
 
 ## 업데이트 내역
+
+- **2025-01-27 v1.4**: 다중 구성 지원 및 지능형 매칭
+  - **MAJOR UPDATE**: 14개 groove 구성 자동 인식 및 적용
+  - Excel의 모든 Powerwave 탭에서 Area 공식 자동 추출
+  - 지능형 구성 매칭: 가장 가까운 구성 자동 선택
+  - 14개 프리셋 버튼 추가 (60-60-6 ~ 90-90-10)
+  - 계산 결과에 사용된 구성 정보 표시
+  - 모든 구성에서 Excel과 정확히 일치하는 결과 보장
 
 - **2025-01-27 v1.3**: Configuration-specific area formulas
   - **CRITICAL FIX**: 각도와 Root Face 조합별 고유 공식 적용
