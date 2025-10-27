@@ -14,7 +14,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.post('/api/calculate-pass', async (c) => {
   try {
     const body = await c.req.json()
-    const { insideAngle, outsideAngle, rootGap, thickness, jointLength, weldingSpeed, dcCurrent, acCurrent } = body
+    const { insideAngle, outsideAngle, rootGap, thickness, weldingSpeed, dcCurrent, acCurrent } = body
 
     // Validate inputs
     if (!insideAngle || !outsideAngle || !rootGap || !thickness) {
@@ -23,7 +23,6 @@ app.post('/api/calculate-pass', async (c) => {
 
     // Set default values
     const t = parseFloat(thickness) || 40
-    const jl = parseFloat(jointLength) || 12000
     const ws = parseFloat(weldingSpeed) || 90
     const ia = parseFloat(insideAngle)
     const oa = parseFloat(outsideAngle)
@@ -47,14 +46,6 @@ app.post('/api/calculate-pass', async (c) => {
 
     const insideArea = calculateArea(t, ia, rg)
     const outsideArea = calculateArea(t, oa, rg)
-
-    // Calculate volumes
-    const insideVolume = insideArea * jl
-    const outsideVolume = outsideArea * jl
-
-    // Calculate weights (density of steel = 7.85 g/cm³ = 7.85e-6 kg/mm³)
-    const insideWeight = insideVolume * 7.85 / 1000000
-    const outsideWeight = outsideVolume * 7.85 / 1000000
 
     // Wire melting rate calculations
     // DC melting rate formula from Lincoln Electric
@@ -95,7 +86,6 @@ app.post('/api/calculate-pass', async (c) => {
         outsideAngle: oa,
         rootGap: rg,
         thickness: t,
-        jointLength: jl,
         weldingSpeed: ws,
         dcCurrent: dc,
         acCurrent: ac
@@ -103,10 +93,6 @@ app.post('/api/calculate-pass', async (c) => {
       calculated: {
         insideArea: Math.round(insideArea * 100) / 100,
         outsideArea: Math.round(outsideArea * 100) / 100,
-        insideVolume: Math.round(insideVolume),
-        outsideVolume: Math.round(outsideVolume),
-        insideWeight: Math.round(insideWeight * 100) / 100,
-        outsideWeight: Math.round(outsideWeight * 100) / 100,
         dcMeltingRate: Math.round(dcMeltingRate * 100) / 100,
         acMeltingRate: Math.round(acMeltingRate * 100) / 100,
         areaPerPass: Math.round(tandemmAreaPerPass * 100) / 100,
@@ -199,17 +185,6 @@ app.get('/', (c) => {
                             <input type="number" id="thickness" value="40" 
                                 class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                 required min="1" step="0.1">
-                        </div>
-
-                        <!-- Joint Length -->
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-ruler-horizontal text-indigo-500"></i>
-                                조인트 길이 (mm)
-                            </label>
-                            <input type="number" id="jointLength" value="12000" 
-                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
-                                required min="1" step="1">
                         </div>
 
                         <!-- Welding Speed -->
@@ -316,7 +291,6 @@ app.get('/', (c) => {
                     outsideAngle: parseFloat(document.getElementById('outsideAngle').value),
                     rootGap: parseFloat(document.getElementById('rootGap').value),
                     thickness: parseFloat(document.getElementById('thickness').value),
-                    jointLength: parseFloat(document.getElementById('jointLength').value),
                     weldingSpeed: parseFloat(document.getElementById('weldingSpeed').value),
                     dcCurrent: parseFloat(document.getElementById('dcCurrent').value),
                     acCurrent: parseFloat(document.getElementById('acCurrent').value)
@@ -369,26 +343,6 @@ app.get('/', (c) => {
                             <div class="grid grid-cols-2 gap-2 text-sm">
                                 <div>Inside: <span class="font-bold">\${calc.insideArea} mm²</span></div>
                                 <div>Outside: <span class="font-bold">\${calc.outsideArea} mm²</span></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-purple-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-purple-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-cube"></i> 용접 부피
-                            </h3>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>Inside: <span class="font-bold">\${calc.insideVolume.toLocaleString()} mm³</span></div>
-                                <div>Outside: <span class="font-bold">\${calc.outsideVolume.toLocaleString()} mm³</span></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-orange-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-orange-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-weight"></i> 용접 중량
-                            </h3>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>Inside: <span class="font-bold">\${calc.insideWeight} kg</span></div>
-                                <div>Outside: <span class="font-bold">\${calc.outsideWeight} kg</span></div>
                             </div>
                         </div>
 

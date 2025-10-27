@@ -35,7 +35,6 @@ Lincoln Electric Powerwave 기반의 용접 pass 수를 자동으로 계산하�
 | Outside Angle | 도(°) | 바깥쪽 groove 각도 | 80 | 0-90 |
 | Root Gap | mm | Root 간격 | 8 | 0+ |
 | 두께 | mm | 용접 두께 | 40 | 1+ |
-| 조인트 길이 | mm | 조인트 길이 | 12000 | 1+ |
 | 용접 속도 | cpm | 용접 속도 (cm/min) | 90 | 1+ |
 | **DC 전류** | **A** | **DC 용접 전류** | **1000** | **500-1200** |
 | **AC 전류** | **A** | **AC 용접 전류** | **900** | **500-1200** |
@@ -49,11 +48,10 @@ Lincoln Electric Powerwave 기반의 용접 pass 수를 자동으로 계산하�
 
 ### 상세 정보
 - **용접 면적** (mm²): Inside/Outside 각각의 용접 면적
-- **용접 부피** (mm³): Inside/Outside 각각의 용접 부피
-- **용접 중량** (kg): Inside/Outside 각각의 용접 중량 (밀도 7.85 g/cm³ 기준)
 - **DC 용융속도** (kg/h): DC 전류 기반 wire 용융속도
 - **AC 용융속도** (kg/h): AC 전류 기반 wire 용융속도
 - **Pass당 면적** (mm²): 1회 pass당 용접 면적 (Tandem effect 15% 포함)
+- **계산된 Pass 값**: 실제 필요한 정확한 pass 수와 올림 값
 
 ## 계산 공식
 
@@ -92,7 +90,6 @@ actualPass = ROUNDUP(requiredPass)
   "outsideAngle": 80,
   "rootGap": 8,
   "thickness": 40,
-  "jointLength": 12000,
   "weldingSpeed": 90,
   "dcCurrent": 1000,
   "acCurrent": 900
@@ -107,7 +104,6 @@ actualPass = ROUNDUP(requiredPass)
     "outsideAngle": 80,
     "rootGap": 8,
     "thickness": 40,
-    "jointLength": 12000,
     "weldingSpeed": 90,
     "dcCurrent": 1000,
     "acCurrent": 900
@@ -115,10 +111,6 @@ actualPass = ROUNDUP(requiredPass)
   "calculated": {
     "insideArea": 527.64,
     "outsideArea": 527.64,
-    "insideVolume": 6331655,
-    "outsideVolume": 6331655,
-    "insideWeight": 49.7,
-    "outsideWeight": 49.7,
     "dcMeltingRate": 13.1,
     "acMeltingRate": 15.29,
     "areaPerPass": 77.04,
@@ -209,6 +201,12 @@ GenSpark AI Assistant
 **결론**: 전류가 높을수록 용융속도가 빠르고, 필요한 pass 수가 감소합니다.
 
 ## 업데이트 내역
+
+- **2025-01-27 v1.2**: 조인트 길이 필드 제거
+  - 조인트 길이 입력 필드 제거 (pass 계산에 불필요)
+  - 용접 부피/중량 계산 제거
+  - UI 간소화 및 필수 항목만 유지
+  - API 응답 최적화
 
 - **2025-01-27 v1.1**: DC/AC 전류 입력 기능 추가
   - 사용자 정의 DC/AC 전류 입력 필드 추가
