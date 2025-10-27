@@ -14,7 +14,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.post('/api/calculate-pass', async (c) => {
   try {
     const body = await c.req.json()
-    const { insideAngle, outsideAngle, rootGap, thickness, jointLength, weldingSpeed } = body
+    const { insideAngle, outsideAngle, rootGap, thickness, jointLength, weldingSpeed, dcCurrent, acCurrent } = body
 
     // Validate inputs
     if (!insideAngle || !outsideAngle || !rootGap || !thickness) {
@@ -28,6 +28,8 @@ app.post('/api/calculate-pass', async (c) => {
     const ia = parseFloat(insideAngle)
     const oa = parseFloat(outsideAngle)
     const rg = parseFloat(rootGap)
+    const dc = parseFloat(dcCurrent) || 1000
+    const ac = parseFloat(acCurrent) || 900
 
     // Calculate Inside and Outside areas using the formula from Excel
     // Area formula: y = 0.2098x² - 1.6782x + 20 (where x is thickness)
@@ -56,12 +58,12 @@ app.post('/api/calculate-pass', async (c) => {
 
     // Wire melting rate calculations
     // DC melting rate formula from Lincoln Electric
-    const dcCurrent = 1000 // Amperes
-    const dcMeltingRate = (0.000001 * Math.pow(dcCurrent, 2)) + (0.0131 * dcCurrent) - 0.998 - 0.014
+    // Formula: MR = 0.000001 * I² + 0.0131 * I - 0.998
+    const dcMeltingRate = (0.000001 * Math.pow(dc, 2)) + (0.0131 * dc) - 0.998
 
     // AC melting rate formula
-    const acCurrent = 900 // Amperes
-    const acMeltingRate = (0.000008 * Math.pow(acCurrent, 2)) + (0.0103 * acCurrent) - 0.4557 - 0.088
+    // Formula: MR = 0.000008 * I² + 0.0103 * I - 0.4557
+    const acMeltingRate = (0.000008 * Math.pow(ac, 2)) + (0.0103 * ac) - 0.4557
 
     // Welding speed in mm/h
     const weldingSpeedMmH = ws * 600
@@ -94,7 +96,9 @@ app.post('/api/calculate-pass', async (c) => {
         rootGap: rg,
         thickness: t,
         jointLength: jl,
-        weldingSpeed: ws
+        weldingSpeed: ws,
+        dcCurrent: dc,
+        acCurrent: ac
       },
       calculated: {
         insideArea: Math.round(insideArea * 100) / 100,
@@ -219,6 +223,28 @@ app.get('/', (c) => {
                                 required min="1" step="1">
                         </div>
 
+                        <!-- Welding Currents -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-bolt text-yellow-500"></i>
+                                    DC 전류 (A)
+                                </label>
+                                <input type="number" id="dcCurrent" value="1000" 
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    required min="500" max="1200" step="1">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-plug text-yellow-500"></i>
+                                    AC 전류 (A)
+                                </label>
+                                <input type="number" id="acCurrent" value="900" 
+                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    required min="500" max="1200" step="1">
+                            </div>
+                        </div>
+
                         <!-- Calculate Button -->
                         <button type="submit" 
                             class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
@@ -291,7 +317,9 @@ app.get('/', (c) => {
                     rootGap: parseFloat(document.getElementById('rootGap').value),
                     thickness: parseFloat(document.getElementById('thickness').value),
                     jointLength: parseFloat(document.getElementById('jointLength').value),
-                    weldingSpeed: parseFloat(document.getElementById('weldingSpeed').value)
+                    weldingSpeed: parseFloat(document.getElementById('weldingSpeed').value),
+                    dcCurrent: parseFloat(document.getElementById('dcCurrent').value),
+                    acCurrent: parseFloat(document.getElementById('acCurrent').value)
                 };
 
                 try {
@@ -369,8 +397,8 @@ app.get('/', (c) => {
                                 <i class="fas fa-info-circle"></i> 기술 정보
                             </h3>
                             <div class="space-y-1 text-sm">
-                                <div>DC 용융속도: <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
-                                <div>AC 용융속도: <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
+                                <div>DC 전류: <span class="font-bold">\${result.input.dcCurrent} A</span> → 용융속도: <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
+                                <div>AC 전류: <span class="font-bold">\${result.input.acCurrent} A</span> → 용융속도: <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
                                 <div>Pass당 면적: <span class="font-bold">\${calc.areaPerPass} mm²</span></div>
                             </div>
                         </div>
