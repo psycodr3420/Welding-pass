@@ -14,7 +14,7 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.post('/api/calculate-pass', async (c) => {
   try {
     const body = await c.req.json()
-    const { insideAngle, outsideAngle, rootGap, thickness, weldingSpeed, dcCurrent, acCurrent } = body
+    const { insideAngle, outsideAngle, rootGap, thickness, weldingSpeed, dcCurrent, acCurrent, useInConfig } = body
 
     // Validate inputs
     if (!insideAngle || !outsideAngle || !rootGap || !thickness) {
@@ -29,6 +29,7 @@ app.post('/api/calculate-pass', async (c) => {
     const rg = parseFloat(rootGap)
     const dc = parseFloat(dcCurrent) || 1000
     const ac = parseFloat(acCurrent) || 900
+    const useIn = useInConfig === true
 
     // Area calculation formulas extracted from Excel sheets
     // Each configuration (Inside Angle - Outside Angle - Root Face) has specific formulas
@@ -88,11 +89,25 @@ app.post('/api/calculate-pass', async (c) => {
       '90-90-10': {
         inside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418,
         outside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418
+      },
+      // "(In)" series: Inside Area has Seal Area (15mm²) subtracted
+      '60-70-3-in': {
+        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - 15,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
+      },
+      '60-70-4-in': {
+        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193 - 15,
+        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
+      },
+      '70-70-3-in': {
+        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - 15,
+        outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
       }
     }
 
     // Find the best matching configuration
-    const configKey = `${Math.round(ia)}-${Math.round(oa)}-${Math.round(rg)}`
+    const baseConfigKey = `${Math.round(ia)}-${Math.round(oa)}-${Math.round(rg)}`
+    const configKey = useIn ? `${baseConfigKey}-in` : baseConfigKey
     let insideArea, outsideArea, matchedConfig = configKey
 
     if (areaFormulas[configKey]) {
@@ -105,7 +120,15 @@ app.post('/api/calculate-pass', async (c) => {
       let nearestKey = '80-80-8' // default
 
       for (const key of Object.keys(areaFormulas)) {
-        const [keyIa, keyOa, keyRg] = key.split('-').map(Number)
+        // Skip (In) configurations if not requested, and vice versa
+        const isInKey = key.endsWith('-in')
+        if (isInKey !== useIn) continue
+
+        const parts = key.split('-')
+        const keyIa = parseInt(parts[0])
+        const keyOa = parseInt(parts[1])
+        const keyRg = parseInt(parts[2])
+        
         const distance = Math.sqrt(
           Math.pow(ia - keyIa, 2) +
           Math.pow(oa - keyOa, 2) +
@@ -254,6 +277,23 @@ app.get('/', (c) => {
                                 required min="0" step="0.1">
                         </div>
 
+                        <!-- (In) Configuration Toggle -->
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" id="useInConfig" 
+                                    class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                <div>
+                                    <div class="font-semibold text-gray-800">
+                                        <i class="fas fa-layer-group text-blue-600"></i>
+                                        Use "(In)" Configuration
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        Subtracts Seal Area (15mm²) from Inside Area
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
                         <!-- Thickness -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -387,17 +427,38 @@ app.get('/', (c) => {
                         90-90-10
                     </button>
                 </div>
+                
+                <!-- (In) Series Presets -->
+                <h3 class="text-lg font-bold text-gray-700 mt-4 mb-2 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-blue-600"></i>
+                    "(In)" Series (with Seal Area Subtraction)
+                </h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <button onclick="applyPreset(60, 70, 3, 40, true)" 
+                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-70-3 (In)
+                    </button>
+                    <button onclick="applyPreset(60, 70, 4, 66, true)" 
+                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        60-70-4 (In)
+                    </button>
+                    <button onclick="applyPreset(70, 70, 3, 40, true)" 
+                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        70-70-3 (In)
+                    </button>
+                </div>
             </div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
             // Apply preset configuration
-            function applyPreset(inside, outside, gap, thickness) {
+            function applyPreset(inside, outside, gap, thickness, useIn = false) {
                 document.getElementById('insideAngle').value = inside;
                 document.getElementById('outsideAngle').value = outside;
                 document.getElementById('rootGap').value = gap;
                 document.getElementById('thickness').value = thickness;
+                document.getElementById('useInConfig').checked = useIn;
             }
 
             // Form submission
@@ -411,7 +472,8 @@ app.get('/', (c) => {
                     thickness: parseFloat(document.getElementById('thickness').value),
                     weldingSpeed: parseFloat(document.getElementById('weldingSpeed').value),
                     dcCurrent: parseFloat(document.getElementById('dcCurrent').value),
-                    acCurrent: parseFloat(document.getElementById('acCurrent').value)
+                    acCurrent: parseFloat(document.getElementById('acCurrent').value),
+                    useInConfig: document.getElementById('useInConfig').checked
                 };
 
                 try {
