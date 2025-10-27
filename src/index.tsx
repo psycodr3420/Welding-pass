@@ -154,11 +154,11 @@ app.get('/', (c) => {
                             </div>
                         </div>
 
-                        <!-- Root Gap -->
+                        <!-- Root Face -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                 <i class="fas fa-arrows-alt-h text-indigo-500"></i>
-                                Root Gap (mm)
+                                Root Face (mm)
                             </label>
                             <input type="number" id="rootGap" value="8" 
                                 class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
