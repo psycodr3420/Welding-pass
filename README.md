@@ -55,11 +55,21 @@ Lincoln Electric Powerwave 기반의 용접 pass 수를 자동으로 계산하�
 
 ## 계산 공식
 
-### 1. 용접 면적 계산
+### 1. 용접 면적 계산 (Configuration-Specific)
+
+#### 60-70-5 Configuration (60°, 70°, Root Face 5mm)
 ```
-baseArea = 0.2098 × thickness² - 1.6782 × thickness + 20
-area = baseArea × (angle/70) × (gap/5)
+Inside Area  = 0.1751 × t² - 0.35 × t + 17.374
+Outside Area = 0.1443 × t² - 0.2905 × t + 17.866
 ```
+
+#### 80-80-8 Configuration (80°, 80°, Root Face 8mm)
+```
+Inside Area  = 0.2098 × t² - 1.6782 × t + 5
+Outside Area = 0.2098 × t² - 1.6782 × t + 20
+```
+
+**Note**: Different angle/root face combinations use different formulas derived from Lincoln Electric Excel data.
 
 ### 2. Wire 용융속도 (전류 기반)
 - **DC**: `MR = 0.000001 × I² + 0.0131 × I - 0.998` (kg/h)
@@ -72,10 +82,24 @@ area = baseArea × (angle/70) × (gap/5)
 - AC 900A → 15.29 kg/h
 - AC 700A → 10.67 kg/h
 
-### 3. Pass 수 계산
+### 3. Wire Melting Rate per mm
 ```
-areaPerPass = (dcArea + acArea) × 1.15  // Tandem effect 15%
-requiredPass = weldingArea / areaPerPass
+Speed conversion: 1 cpm = 600 mm/h
+dcWmrPerMm = (dcMeltingRate × 1000) / (speed × 600)  // g/mm
+acWmrPerMm = (acMeltingRate × 1000) / (speed × 600)  // g/mm
+```
+
+### 4. Area per Pass
+```
+Specific Gravity = 0.00785 g/mm³ (steel: 7.85 g/cm³)
+dcAreaPerPass = dcWmrPerMm / specificGravity  // mm²
+acAreaPerPass = acWmrPerMm / specificGravity  // mm²
+tandemAreaPerPass = (dcAreaPerPass + acAreaPerPass) × 1.15  // Tandem effect 15%
+```
+
+### 5. Pass 수 계산
+```
+requiredPass = weldingArea / tandemAreaPerPass
 actualPass = ROUNDUP(requiredPass)
 ```
 
@@ -200,7 +224,52 @@ GenSpark AI Assistant
 
 **결론**: 전류가 높을수록 용융속도가 빠르고, 필요한 pass 수가 감소합니다.
 
+## 계산 정확도 검증
+
+### 테스트 케이스: 60-70-5 Configuration
+**입력:**
+- Inside Angle: 60°
+- Outside Angle: 70°
+- Root Face: 5mm
+- Thickness: 50mm
+- Welding Speed: 70 cpm
+- DC Current: 600A
+- AC Current: 550A
+
+**계산 결과:**
+- Inside Area: 437.62 mm²
+- Outside Area: 364.09 mm²
+- Tandem Area per Pass: 51.80 mm²
+- **Inside Pass: 9**
+- **Outside Pass: 8**
+- **Total: 17 passes** ✅
+
+### 테스트 케이스: 80-80-8 Configuration
+**입력:**
+- Inside Angle: 80°
+- Outside Angle: 80°
+- Root Face: 8mm
+- Thickness: 50mm
+- Welding Speed: 70 cpm
+- DC Current: 600A
+- AC Current: 550A
+
+**계산 결과:**
+- Inside Area: 445.59 mm²
+- Outside Area: 460.59 mm²
+- Tandem Area per Pass: 51.80 mm²
+- **Inside Pass: 9**
+- **Outside Pass: 9**
+- **Total: 18 passes** ✅
+
 ## 업데이트 내역
+
+- **2025-01-27 v1.3**: Configuration-specific area formulas
+  - **CRITICAL FIX**: 각도와 Root Face 조합별 고유 공식 적용
+  - 60-70-5 및 80-80-8 configuration 각각의 Excel 공식 사용
+  - 속도 변환 공식 수정: 1 cpm = 600 mm/h (기존 잘못된 변환 수정)
+  - Specific gravity 수정: 0.00785 g/mm³ (기존 7.85/1000)
+  - 계산 정확도 크게 향상 (Excel 결과와 정확히 일치)
 
 - **2025-01-27 v1.2**: 조인트 길이 필드 제거
   - 조인트 길이 입력 필드 제거 (pass 계산에 불필요)
