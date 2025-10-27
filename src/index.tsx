@@ -224,71 +224,71 @@ app.get('/', (c) => {
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <link href="/static/style.css" rel="stylesheet">
     </head>
-    <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4">
-        <div class="max-w-6xl mx-auto py-8">
+    <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-2 sm:p-4">
+        <div class="max-w-6xl mx-auto py-4 sm:py-8">
             <!-- Header -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h1 class="text-4xl font-bold text-indigo-800 mb-2 flex items-center gap-3">
-                    <i class="fas fa-industry"></i>
-                    Welding Pass Calculator
+            <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-indigo-800 mb-2 flex items-center gap-2 sm:gap-3">
+                    <i class="fas fa-industry text-xl sm:text-3xl"></i>
+                    <span class="leading-tight">Welding Pass Calculator</span>
                 </h1>
-                <p class="text-gray-600">Automatic welding pass calculation based on Lincoln Electric Powerwave</p>
+                <p class="text-sm sm:text-base text-gray-600">Automatic welding pass calculation based on Lincoln Electric Powerwave</p>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-6">
+            <div class="grid lg:grid-cols-2 gap-4 sm:gap-6">
                 <!-- Input Section -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
                         <i class="fas fa-edit text-indigo-600"></i>
                         Input Parameters
                     </h2>
                     
-                    <form id="weldingForm" class="space-y-4">
+                    <form id="weldingForm" class="space-y-3 sm:space-y-4">
                         <!-- Groove Angles -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                     <i class="fas fa-angle-left text-indigo-500"></i>
-                                    Inside Angle (°)
+                                    Inside (°)
                                 </label>
                                 <input type="number" id="insideAngle" value="80" 
-                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                     required min="0" max="90" step="1">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                     <i class="fas fa-angle-right text-indigo-500"></i>
-                                    Outside Angle (°)
+                                    Outside (°)
                                 </label>
                                 <input type="number" id="outsideAngle" value="80" 
-                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                     required min="0" max="90" step="1">
                             </div>
                         </div>
 
                         <!-- Root Face -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <i class="fas fa-arrows-alt-h text-indigo-500"></i>
                                 Root Face (mm)
                             </label>
                             <input type="number" id="rootGap" value="8" 
-                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                 required min="0" step="0.1">
                         </div>
 
                         <!-- (In) Configuration Toggle -->
-                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                            <label class="flex items-center gap-3 cursor-pointer">
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4">
+                            <label class="flex items-start gap-2 sm:gap-3 cursor-pointer">
                                 <input type="checkbox" id="useInConfig" 
-                                    class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                    class="w-5 h-5 mt-0.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 flex-shrink-0">
                                 <div>
-                                    <div class="font-semibold text-gray-800">
+                                    <div class="text-sm sm:text-base font-semibold text-gray-800">
                                         <i class="fas fa-layer-group text-blue-600"></i>
                                         Use "(In)" Configuration
                                     </div>
-                                    <div class="text-sm text-gray-600">
-                                        Subtracts Seal Area (15mm²) from Inside Area
+                                    <div class="text-xs sm:text-sm text-gray-600">
+                                        Subtracts Seal Area (15mm²)
                                     </div>
                                 </div>
                             </label>
@@ -296,51 +296,51 @@ app.get('/', (c) => {
 
                         <!-- Thickness -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <i class="fas fa-ruler-vertical text-indigo-500"></i>
                                 Thickness (mm)
                             </label>
                             <input type="number" id="thickness" value="40" 
-                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                 required min="1" step="0.1">
                         </div>
 
                         <!-- Welding Speed -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                 <i class="fas fa-tachometer-alt text-indigo-500"></i>
                                 Welding Speed (cpm)
                             </label>
                             <input type="number" id="weldingSpeed" value="90" 
-                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                 required min="1" step="1">
                         </div>
 
                         <!-- Welding Currents -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                     <i class="fas fa-bolt text-yellow-500"></i>
-                                    DC Current (A)
+                                    DC (A)
                                 </label>
                                 <input type="number" id="dcCurrent" value="1000" 
-                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                     required min="500" max="1200" step="1">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                                     <i class="fas fa-plug text-yellow-500"></i>
-                                    AC Current (A)
+                                    AC (A)
                                 </label>
                                 <input type="number" id="acCurrent" value="900" 
-                                    class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
+                                    class="w-full px-3 py-3 sm:px-4 sm:py-2 text-base border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none transition"
                                     required min="500" max="1200" step="1">
                             </div>
                         </div>
 
                         <!-- Calculate Button -->
                         <button type="submit" 
-                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg">
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-4 sm:py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-lg text-base sm:text-lg">
                             <i class="fas fa-calculator"></i>
                             Calculate Pass
                         </button>
@@ -348,102 +348,102 @@ app.get('/', (c) => {
                 </div>
 
                 <!-- Results Section -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
                         <i class="fas fa-chart-line text-green-600"></i>
                         Calculation Results
                     </h2>
                     
-                    <div id="results" class="space-y-4">
+                    <div id="results" class="space-y-3 sm:space-y-4">
                         <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-                            <i class="fas fa-info-circle text-3xl mb-2"></i>
-                            <p>Enter parameters and click Calculate Pass button.</p>
+                            <i class="fas fa-info-circle text-2xl sm:text-3xl mb-2"></i>
+                            <p class="text-sm sm:text-base">Enter parameters and click Calculate Pass button.</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Preset Configurations -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mt-4 sm:mt-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
                     <i class="fas fa-bookmark text-purple-600"></i>
                     Preset Configurations
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
                     <button onclick="applyPreset(60, 60, 6, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-60-6
                     </button>
                     <button onclick="applyPreset(60, 60, 8, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-60-8
                     </button>
                     <button onclick="applyPreset(60, 65, 5, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-65-5
                     </button>
                     <button onclick="applyPreset(60, 65, 6, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-65-6
                     </button>
                     <button onclick="applyPreset(60, 70, 3, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-70-3
                     </button>
                     <button onclick="applyPreset(60, 70, 4, 31.4)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-70-4
                     </button>
                     <button onclick="applyPreset(60, 70, 5, 50)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-70-5
                     </button>
                     <button onclick="applyPreset(70, 70, 3, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         70-70-3
                     </button>
                     <button onclick="applyPreset(80, 80, 6, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         80-80-6
                     </button>
                     <button onclick="applyPreset(80, 80, 7, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         80-80-7
                     </button>
                     <button onclick="applyPreset(80, 80, 8, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         80-80-8
                     </button>
                     <button onclick="applyPreset(80, 80, 10, 50)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         80-80-10
                     </button>
                     <button onclick="applyPreset(90, 90, 8, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         90-90-8
                     </button>
                     <button onclick="applyPreset(90, 90, 10, 40)" 
-                        class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-purple-100 hover:bg-purple-200 active:bg-purple-300 text-purple-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         90-90-10
                     </button>
                 </div>
                 
                 <!-- (In) Series Presets -->
-                <h3 class="text-lg font-bold text-gray-700 mt-4 mb-2 flex items-center gap-2">
+                <h3 class="text-base sm:text-lg font-bold text-gray-700 mt-3 sm:mt-4 mb-2 flex items-center gap-2">
                     <i class="fas fa-layer-group text-blue-600"></i>
-                    "(In)" Series (with Seal Area Subtraction)
+                    <span>"(In)" Series</span>
                 </h3>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                     <button onclick="applyPreset(60, 70, 3, 40, true)" 
-                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-70-3 (In)
                     </button>
                     <button onclick="applyPreset(60, 70, 4, 66, true)" 
-                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         60-70-4 (In)
                     </button>
                     <button onclick="applyPreset(70, 70, 3, 40, true)" 
-                        class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2 px-4 rounded-lg transition">
+                        class="bg-blue-100 hover:bg-blue-200 active:bg-blue-300 text-blue-800 font-semibold py-3 sm:py-2 px-3 sm:px-4 rounded-lg transition text-sm sm:text-base">
                         70-70-3 (In)
                     </button>
                 </div>
@@ -497,62 +497,62 @@ app.get('/', (c) => {
                 
                 const html = \`
                     <!-- Main Pass Results -->
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
-                        <div class="text-center mb-4">
-                            <div class="text-5xl font-bold mb-2">\${calc.totalPassCount}</div>
-                            <div class="text-lg">Total Passes</div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 sm:p-6 text-white">
+                        <div class="text-center mb-3 sm:mb-4">
+                            <div class="text-4xl sm:text-5xl font-bold mb-2">\${calc.totalPassCount}</div>
+                            <div class="text-base sm:text-lg">Total Passes</div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4 text-center">
                             <div class="bg-white/20 rounded-lg p-3">
-                                <div class="text-2xl font-bold">\${calc.insidePassCount}</div>
-                                <div class="text-sm">Inside Pass</div>
+                                <div class="text-xl sm:text-2xl font-bold">\${calc.insidePassCount}</div>
+                                <div class="text-xs sm:text-sm">Inside Pass</div>
                             </div>
                             <div class="bg-white/20 rounded-lg p-3">
-                                <div class="text-2xl font-bold">\${calc.outsidePassCount}</div>
-                                <div class="text-sm">Outside Pass</div>
+                                <div class="text-xl sm:text-2xl font-bold">\${calc.outsidePassCount}</div>
+                                <div class="text-xs sm:text-sm">Outside Pass</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Detailed Results -->
-                    <div class="space-y-3">
-                        <div class="bg-indigo-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+                    <div class="space-y-2 sm:space-y-3">
+                        <div class="bg-indigo-50 rounded-lg p-3 sm:p-4">
+                            <h3 class="text-sm sm:text-base font-semibold text-indigo-900 mb-2 flex items-center gap-2">
                                 <i class="fas fa-cog"></i> Configuration
                             </h3>
-                            <div class="text-sm">
-                                <div>Used Formula: <span class="font-bold text-indigo-700">\${calc.configuration}</span></div>
+                            <div class="text-xs sm:text-sm">
+                                <div class="break-words">Used: <span class="font-bold text-indigo-700">\${calc.configuration}</span></div>
                             </div>
                         </div>
 
-                        <div class="bg-blue-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <div class="bg-blue-50 rounded-lg p-3 sm:p-4">
+                            <h3 class="text-sm sm:text-base font-semibold text-blue-900 mb-2 flex items-center gap-2">
                                 <i class="fas fa-expand-alt"></i> Welding Area
                             </h3>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                                 <div>Inside: <span class="font-bold">\${calc.insideArea} mm²</span></div>
                                 <div>Outside: <span class="font-bold">\${calc.outsideArea} mm²</span></div>
                             </div>
                         </div>
 
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <div class="bg-gray-50 rounded-lg p-3 sm:p-4">
+                            <h3 class="text-sm sm:text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
                                 <i class="fas fa-info-circle"></i> Technical Info
                             </h3>
-                            <div class="space-y-1 text-sm">
-                                <div>DC Current: <span class="font-bold">\${result.input.dcCurrent} A</span> → Melting Rate: <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
-                                <div>AC Current: <span class="font-bold">\${result.input.acCurrent} A</span> → Melting Rate: <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
-                                <div>Area per Pass: <span class="font-bold">\${calc.areaPerPass} mm²</span></div>
+                            <div class="space-y-1 text-xs sm:text-sm">
+                                <div><span class="font-medium">DC:</span> <span class="font-bold">\${result.input.dcCurrent}A</span> → <span class="font-bold">\${calc.dcMeltingRate} kg/h</span></div>
+                                <div><span class="font-medium">AC:</span> <span class="font-bold">\${result.input.acCurrent}A</span> → <span class="font-bold">\${calc.acMeltingRate} kg/h</span></div>
+                                <div><span class="font-medium">Area/Pass:</span> <span class="font-bold">\${calc.areaPerPass} mm²</span></div>
                             </div>
                         </div>
 
-                        <div class="bg-yellow-50 rounded-lg p-4">
-                            <h3 class="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-                                <i class="fas fa-calculator"></i> Calculated Pass Values
+                        <div class="bg-yellow-50 rounded-lg p-3 sm:p-4">
+                            <h3 class="text-sm sm:text-base font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+                                <i class="fas fa-calculator"></i> Pass Values
                             </h3>
-                            <div class="space-y-1 text-sm">
-                                <div>Inside: <span class="font-bold">\${calc.insideRequiredPass}</span> → \${calc.insidePassCount} pass</div>
-                                <div>Outside: <span class="font-bold">\${calc.outsideRequiredPass}</span> → \${calc.outsidePassCount} pass</div>
+                            <div class="space-y-1 text-xs sm:text-sm">
+                                <div><span class="font-medium">Inside:</span> <span class="font-bold">\${calc.insideRequiredPass}</span> → <span class="text-base font-bold text-yellow-800">\${calc.insidePassCount} pass</span></div>
+                                <div><span class="font-medium">Outside:</span> <span class="font-bold">\${calc.outsideRequiredPass}</span> → <span class="text-base font-bold text-yellow-800">\${calc.outsidePassCount} pass</span></div>
                             </div>
                         </div>
                     </div>
