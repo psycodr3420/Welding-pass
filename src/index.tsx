@@ -31,21 +31,10 @@ app.post('/api/calculate-pass', async (c) => {
     const ac = parseFloat(acCurrent) || 900
 
     // Calculate Inside and Outside areas using the formula from Excel
-    // Area formula: y = 0.2098x² - 1.6782x + 20 (where x is thickness)
-    const calculateArea = (thickness: number, angle: number, gap: number) => {
-      // Base area calculation
-      const baseArea = (0.2098 * Math.pow(thickness, 2)) - (1.6782 * thickness) + 20
-      
-      // Adjust based on groove angle and root gap
-      // The area increases with larger angles and root gaps
-      const angleFactor = angle / 70 // Normalize to 70 degrees as base
-      const gapFactor = gap / 5 // Normalize to 5mm as base
-      
-      return baseArea * angleFactor * gapFactor
-    }
-
-    const insideArea = calculateArea(t, ia, rg)
-    const outsideArea = calculateArea(t, oa, rg)
+    // Outside Area formula: y = 0.2098x² - 1.6782x + 20 (where x is thickness)
+    // Inside Area formula: Outside Area - 15
+    const outsideArea = (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+    const insideArea = outsideArea - 15
 
     // Wire melting rate calculations
     // DC melting rate formula from Lincoln Electric
