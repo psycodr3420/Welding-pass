@@ -2,6 +2,288 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 
+// Type definitions
+interface WeldingInput {
+  insideAngle: number
+  outsideAngle: number
+  rootGap: number
+  thickness: number
+  weldingSpeed: number
+  dcCurrent: number
+  acCurrent: number
+  useInConfig?: boolean
+}
+
+interface AreaFormula {
+  inside: (t: number) => number
+  outside: (t: number) => number
+}
+
+interface WeldingResult {
+  input: Omit<WeldingInput, 'useInConfig'>
+  calculated: {
+    configuration: string
+    insideArea: number
+    outsideArea: number
+    dcMeltingRate: number
+    acMeltingRate: number
+    areaPerPass: number
+    insideRequiredPass: number
+    outsideRequiredPass: number
+    insidePassCount: number
+    outsidePassCount: number
+    totalPassCount: number
+  }
+}
+
+// Physical constants
+const CONSTANTS = {
+  CPM_TO_MM_PER_HOUR: 600,
+  KG_TO_GRAMS: 1000,
+  SPECIFIC_GRAVITY_STEEL: 0.00785, // g/mm³
+  TANDEM_EFFECT_MULTIPLIER: 1.15,
+  SEAL_AREA: 15, // mm²
+  DEFAULT_THICKNESS: 40,
+  DEFAULT_WELDING_SPEED: 90,
+  DEFAULT_DC_CURRENT: 1000,
+  DEFAULT_AC_CURRENT: 900,
+  DEFAULT_CONFIG: '80-80-8'
+} as const
+
+// Area calculation formulas extracted from Excel sheets
+// Each configuration (Inside Angle - Outside Angle - Root Face) has specific quadratic formulas
+// Format: a×t² + b×t + c, where t is thickness in mm
+const AREA_FORMULAS: Record<string, AreaFormula> = {
+  '60-60-6': {
+    inside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
+  },
+  '60-60-8': {
+    inside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021
+  },
+  '60-65-5': {
+    inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.3175 * t) + 17.611,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2901 * t) + 17.862
+  },
+  '60-65-6': {
+    inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.6392 * t) + 18.121,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
+  },
+  '60-70-3': {
+    inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
+  },
+  '60-70-4': {
+    inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
+  },
+  '60-70-5': {
+    inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.35 * t) + 17.374,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2905 * t) + 17.866
+  },
+  '70-70-3': {
+    inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
+    outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
+  },
+  '80-80-6': {
+    inside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483,
+    outside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483
+  },
+  '80-80-7': {
+    inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532,
+    outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532
+  },
+  '80-80-8': {
+    inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20,
+    outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
+  },
+  '80-80-10': {
+    inside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195,
+    outside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195
+  },
+  '90-90-8': {
+    inside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014,
+    outside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014
+  },
+  '90-90-10': {
+    inside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418,
+    outside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418
+  },
+  // "(In)" series: Inside Area has Seal Area (15mm²) subtracted
+  '60-70-3-in': {
+    inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - CONSTANTS.SEAL_AREA,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
+  },
+  '60-70-4-in': {
+    inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193 - CONSTANTS.SEAL_AREA,
+    outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
+  },
+  '70-70-3-in': {
+    inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - CONSTANTS.SEAL_AREA,
+    outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
+  }
+}
+
+// Helper Functions
+
+/**
+ * Parses and validates welding input parameters
+ */
+function parseWeldingInput(body: any): WeldingInput {
+  const input: WeldingInput = {
+    insideAngle: parseFloat(body.insideAngle),
+    outsideAngle: parseFloat(body.outsideAngle),
+    rootGap: parseFloat(body.rootGap),
+    thickness: parseFloat(body.thickness) || CONSTANTS.DEFAULT_THICKNESS,
+    weldingSpeed: parseFloat(body.weldingSpeed) || CONSTANTS.DEFAULT_WELDING_SPEED,
+    dcCurrent: parseFloat(body.dcCurrent) || CONSTANTS.DEFAULT_DC_CURRENT,
+    acCurrent: parseFloat(body.acCurrent) || CONSTANTS.DEFAULT_AC_CURRENT,
+    useInConfig: body.useInConfig === true
+  }
+
+  if (!input.insideAngle || !input.outsideAngle || !input.rootGap || !input.thickness) {
+    throw new Error('Please provide all required input values.')
+  }
+
+  return input
+}
+
+/**
+ * Finds the best matching configuration using exact match or nearest neighbor
+ */
+function findMatchingConfiguration(
+  insideAngle: number,
+  outsideAngle: number,
+  rootGap: number,
+  useIn: boolean
+): { configKey: string; formula: AreaFormula } {
+  const baseConfigKey = `${Math.round(insideAngle)}-${Math.round(outsideAngle)}-${Math.round(rootGap)}`
+  const requestedKey = useIn ? `${baseConfigKey}-in` : baseConfigKey
+
+  // Try exact match
+  if (AREA_FORMULAS[requestedKey]) {
+    return { configKey: requestedKey, formula: AREA_FORMULAS[requestedKey] }
+  }
+
+  // Find nearest configuration using Euclidean distance
+  let minDistance = Infinity
+  let nearestKey = CONSTANTS.DEFAULT_CONFIG
+
+  for (const key of Object.keys(AREA_FORMULAS)) {
+    const isInKey = key.endsWith('-in')
+    if (isInKey !== useIn) continue
+
+    const parts = key.split('-')
+    const keyIa = parseInt(parts[0])
+    const keyOa = parseInt(parts[1])
+    const keyRg = parseInt(parts[2])
+
+    const distance = Math.sqrt(
+      Math.pow(insideAngle - keyIa, 2) +
+      Math.pow(outsideAngle - keyOa, 2) +
+      Math.pow(rootGap - keyRg, 2)
+    )
+
+    if (distance < minDistance) {
+      minDistance = distance
+      nearestKey = key
+    }
+  }
+
+  return {
+    configKey: `${nearestKey} (nearest to ${requestedKey})`,
+    formula: AREA_FORMULAS[nearestKey]
+  }
+}
+
+/**
+ * Calculates DC wire melting rate (kg/h)
+ * Formula: MR = 0.000001 × I² + 0.0131 × I - 0.998
+ */
+function calculateDcMeltingRate(current: number): number {
+  return (0.000001 * Math.pow(current, 2)) + (0.0131 * current) - 0.998
+}
+
+/**
+ * Calculates AC wire melting rate (kg/h)
+ * Formula: MR = 0.000008 × I² + 0.0103 × I - 0.4557
+ */
+function calculateAcMeltingRate(current: number): number {
+  return (0.000008 * Math.pow(current, 2)) + (0.0103 * current) - 0.4557
+}
+
+/**
+ * Calculates area per pass considering tandem effect
+ */
+function calculateAreaPerPass(
+  dcCurrent: number,
+  acCurrent: number,
+  weldingSpeed: number
+): number {
+  const dcMr = calculateDcMeltingRate(dcCurrent)
+  const acMr = calculateAcMeltingRate(acCurrent)
+
+  const speedMmH = weldingSpeed * CONSTANTS.CPM_TO_MM_PER_HOUR
+  const dcWmrPerMm = (dcMr * CONSTANTS.KG_TO_GRAMS) / speedMmH
+  const acWmrPerMm = (acMr * CONSTANTS.KG_TO_GRAMS) / speedMmH
+
+  const dcArea = dcWmrPerMm / CONSTANTS.SPECIFIC_GRAVITY_STEEL
+  const acArea = acWmrPerMm / CONSTANTS.SPECIFIC_GRAVITY_STEEL
+
+  return (dcArea + acArea) * CONSTANTS.TANDEM_EFFECT_MULTIPLIER
+}
+
+/**
+ * Calculates welding pass counts for inside and outside
+ */
+function calculateWeldingPasses(input: WeldingInput): WeldingResult {
+  const { configKey, formula } = findMatchingConfiguration(
+    input.insideAngle,
+    input.outsideAngle,
+    input.rootGap,
+    input.useInConfig || false
+  )
+
+  const insideArea = formula.inside(input.thickness)
+  const outsideArea = formula.outside(input.thickness)
+
+  const dcMr = calculateDcMeltingRate(input.dcCurrent)
+  const acMr = calculateAcMeltingRate(input.acCurrent)
+  const areaPerPass = calculateAreaPerPass(input.dcCurrent, input.acCurrent, input.weldingSpeed)
+
+  const insideRequiredPass = insideArea / areaPerPass
+  const outsideRequiredPass = outsideArea / areaPerPass
+
+  const insidePassCount = Math.ceil(insideRequiredPass)
+  const outsidePassCount = Math.ceil(outsideRequiredPass)
+
+  return {
+    input: {
+      insideAngle: input.insideAngle,
+      outsideAngle: input.outsideAngle,
+      rootGap: input.rootGap,
+      thickness: input.thickness,
+      weldingSpeed: input.weldingSpeed,
+      dcCurrent: input.dcCurrent,
+      acCurrent: input.acCurrent
+    },
+    calculated: {
+      configuration: configKey,
+      insideArea: Math.round(insideArea * 100) / 100,
+      outsideArea: Math.round(outsideArea * 100) / 100,
+      dcMeltingRate: Math.round(dcMr * 100) / 100,
+      acMeltingRate: Math.round(acMr * 100) / 100,
+      areaPerPass: Math.round(areaPerPass * 100) / 100,
+      insideRequiredPass: Math.round(insideRequiredPass * 100) / 100,
+      outsideRequiredPass: Math.round(outsideRequiredPass * 100) / 100,
+      insidePassCount,
+      outsidePassCount,
+      totalPassCount: insidePassCount + outsidePassCount
+    }
+  }
+}
+
 const app = new Hono()
 
 // Enable CORS for API routes
@@ -14,200 +296,12 @@ app.use('/static/*', serveStatic({ root: './public' }))
 app.post('/api/calculate-pass', async (c) => {
   try {
     const body = await c.req.json()
-    const { insideAngle, outsideAngle, rootGap, thickness, weldingSpeed, dcCurrent, acCurrent, useInConfig } = body
-
-    // Validate inputs
-    if (!insideAngle || !outsideAngle || !rootGap || !thickness) {
-      return c.json({ error: 'Please provide all required input values.' }, 400)
-    }
-
-    // Set default values
-    const t = parseFloat(thickness) || 40
-    const ws = parseFloat(weldingSpeed) || 90
-    const ia = parseFloat(insideAngle)
-    const oa = parseFloat(outsideAngle)
-    const rg = parseFloat(rootGap)
-    const dc = parseFloat(dcCurrent) || 1000
-    const ac = parseFloat(acCurrent) || 900
-    const useIn = useInConfig === true
-
-    // Area calculation formulas extracted from Excel sheets
-    // Each configuration (Inside Angle - Outside Angle - Root Face) has specific formulas
-    const areaFormulas: Record<string, { inside: (t: number) => number; outside: (t: number) => number }> = {
-      '60-60-6': {
-        inside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
-      },
-      '60-60-8': {
-        inside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (1.1556 * t) + 20.021
-      },
-      '60-65-5': {
-        inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.3175 * t) + 17.611,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2901 * t) + 17.862
-      },
-      '60-65-6': {
-        inside: (t) => (0.1593 * Math.pow(t, 2)) - (0.6392 * t) + 18.121,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.5783 * t) + 18.29
-      },
-      '60-70-3': {
-        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
-      },
-      '60-70-4': {
-        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
-      },
-      '60-70-5': {
-        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.35 * t) + 17.374,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.2905 * t) + 17.866
-      },
-      '70-70-3': {
-        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355,
-        outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
-      },
-      '80-80-6': {
-        inside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483,
-        outside: (t) => (0.2098 * Math.pow(t, 2)) - (0.8391 * t) + 17.483
-      },
-      '80-80-7': {
-        inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532,
-        outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.2586 * t) + 18.532
-      },
-      '80-80-8': {
-        inside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20,
-        outside: (t) => (0.2098 * Math.pow(t, 2)) - (1.6782 * t) + 20
-      },
-      '80-80-10': {
-        inside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195,
-        outside: (t) => (0.2098 * Math.pow(t, 2)) - (2.5173 * t) + 24.195
-      },
-      '90-90-8': {
-        inside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014,
-        outside: (t) => (0.25 * Math.pow(t, 2)) - (1.9994 * t) + 20.014
-      },
-      '90-90-10': {
-        inside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418,
-        outside: (t) => (0.2465 * Math.pow(t, 2)) - (2.5422 * t) + 12.418
-      },
-      // "(In)" series: Inside Area has Seal Area (15mm²) subtracted
-      '60-70-3-in': {
-        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - 15,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.288 * t) + 17.847
-      },
-      '60-70-4-in': {
-        inside: (t) => (0.1751 * Math.pow(t, 2)) - (0.0001 * t) + 17.193 - 15,
-        outside: (t) => (0.1443 * Math.pow(t, 2)) - (0.0009 * t) + 17.699
-      },
-      '70-70-3-in': {
-        inside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355 - 15,
-        outside: (t) => (0.175 * Math.pow(t, 2)) - (0.3512 * t) + 17.355
-      }
-    }
-
-    // Find the best matching configuration
-    const baseConfigKey = `${Math.round(ia)}-${Math.round(oa)}-${Math.round(rg)}`
-    const configKey = useIn ? `${baseConfigKey}-in` : baseConfigKey
-    let insideArea, outsideArea, matchedConfig = configKey
-
-    if (areaFormulas[configKey]) {
-      // Exact match found
-      insideArea = areaFormulas[configKey].inside(t)
-      outsideArea = areaFormulas[configKey].outside(t)
-    } else {
-      // Find nearest configuration
-      let minDistance = Infinity
-      let nearestKey = '80-80-8' // default
-
-      for (const key of Object.keys(areaFormulas)) {
-        // Skip (In) configurations if not requested, and vice versa
-        const isInKey = key.endsWith('-in')
-        if (isInKey !== useIn) continue
-
-        const parts = key.split('-')
-        const keyIa = parseInt(parts[0])
-        const keyOa = parseInt(parts[1])
-        const keyRg = parseInt(parts[2])
-        
-        const distance = Math.sqrt(
-          Math.pow(ia - keyIa, 2) +
-          Math.pow(oa - keyOa, 2) +
-          Math.pow(rg - keyRg, 2)
-        )
-        
-        if (distance < minDistance) {
-          minDistance = distance
-          nearestKey = key
-        }
-      }
-
-      matchedConfig = `${nearestKey} (nearest to ${configKey})`
-      insideArea = areaFormulas[nearestKey].inside(t)
-      outsideArea = areaFormulas[nearestKey].outside(t)
-    }
-
-    // Wire melting rate calculations
-    // DC melting rate formula from Lincoln Electric
-    // Formula: MR = 0.000001 * I² + 0.0131 * I - 0.998
-    const dcMeltingRate = (0.000001 * Math.pow(dc, 2)) + (0.0131 * dc) - 0.998
-
-    // AC melting rate formula
-    // Formula: MR = 0.000008 * I² + 0.0103 * I - 0.4557
-    const acMeltingRate = (0.000008 * Math.pow(ac, 2)) + (0.0103 * ac) - 0.4557
-
-    // Welding speed conversion: 1 cpm = 600 mm/h
-    const weldingSpeedMmH = ws * 600
-
-    // Wire melting rate per mm (g/mm)
-    // MR (kg/h) * 1000 (g/kg) / speed (mm/h)
-    const dcWmrPerMm = (dcMeltingRate * 1000) / weldingSpeedMmH
-    const acWmrPerMm = (acMeltingRate * 1000) / weldingSpeedMmH
-
-    // Specific gravity (g/mm³)
-    const specificGravity = 0.00785 // g/mm³ (steel: 7.85 g/cm³)
-
-    // Area per pass
-    const dcAreaPerPass = dcWmrPerMm / specificGravity
-    const acAreaPerPass = acWmrPerMm / specificGravity
-    const tandemmAreaPerPass = (dcAreaPerPass + acAreaPerPass) * 1.15 // 15% tandem effect
-
-    // Calculate required passes
-    const insideRequiredPass = insideArea / tandemmAreaPerPass
-    const outsideRequiredPass = outsideArea / tandemmAreaPerPass
-
-    // Round up to get actual pass count
-    const insidePassCount = Math.ceil(insideRequiredPass)
-    const outsidePassCount = Math.ceil(outsideRequiredPass)
-    const totalPassCount = insidePassCount + outsidePassCount
-
-    const result = {
-      input: {
-        insideAngle: ia,
-        outsideAngle: oa,
-        rootGap: rg,
-        thickness: t,
-        weldingSpeed: ws,
-        dcCurrent: dc,
-        acCurrent: ac
-      },
-      calculated: {
-        configuration: matchedConfig,
-        insideArea: Math.round(insideArea * 100) / 100,
-        outsideArea: Math.round(outsideArea * 100) / 100,
-        dcMeltingRate: Math.round(dcMeltingRate * 100) / 100,
-        acMeltingRate: Math.round(acMeltingRate * 100) / 100,
-        areaPerPass: Math.round(tandemmAreaPerPass * 100) / 100,
-        insideRequiredPass: Math.round(insideRequiredPass * 100) / 100,
-        outsideRequiredPass: Math.round(outsideRequiredPass * 100) / 100,
-        insidePassCount,
-        outsidePassCount,
-        totalPassCount
-      }
-    }
-
+    const input = parseWeldingInput(body)
+    const result = calculateWeldingPasses(input)
     return c.json(result)
   } catch (error) {
-    return c.json({ error: 'An error occurred during calculation.' }, 500)
+    const message = error instanceof Error ? error.message : 'An error occurred during calculation.'
+    return c.json({ error: message }, 400)
   }
 })
 
