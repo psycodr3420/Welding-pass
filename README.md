@@ -5,7 +5,7 @@
 **🌐 Live Demo**: https://1ade4415.welding-pass-calculator.pages.dev
 
 ```bash
-git clone <repo-url> && cd webapp
+git clone https://github.com/psycodr3420/Welding-pass.git && cd Welding-pass
 npm install && npm run build
 pm2 start ecosystem.config.cjs
 curl http://localhost:3000  # 브라우저에서 열기
@@ -18,9 +18,9 @@ curl http://localhost:3000  # 브라우저에서 열기
 ### 1️⃣ Clone & Install (30초)
 
 ```bash
-# 프로젝트 클론 (가정: GitHub에서 클론)
-git clone https://github.com/<your-username>/webapp.git
-cd webapp
+# 프로젝트 클론
+git clone https://github.com/psycodr3420/Welding-pass.git
+cd Welding-pass
 
 # 의존성 설치 (Node.js 18+ 필요)
 npm install
