@@ -2,6 +2,8 @@
 
 **TL;DR**: Lincoln Electric Powerwave 기반 용접 패스 자동 계산기. 17개 구성 지원, REST API 제공, 모바일 반응형. 1분 안에 로컬 실행 가능.
 
+**🌐 Live Demo**: https://1ade4415.welding-pass-calculator.pages.dev
+
 ```bash
 git clone <repo-url> && cd webapp
 npm install && npm run build
